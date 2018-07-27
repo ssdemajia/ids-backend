@@ -1,6 +1,6 @@
 # coding=utf-8
 from __future__ import print_function
-import MySQLdb
+import pymysql
 import socket
 import sys
 import time
@@ -25,10 +25,11 @@ class DBError(Exception):
 
 class DataBase:
     def __init__(self):
-        self.__conn = MySQLdb.connect(host=HOST,
+        self.__conn = pymysql.connect(host=HOST,
                                       user=USER,
                                       passwd=PASSWORD,
-                                      db=DATABASE)
+                                      db=DATABASE,
+                                    )
 
     def __del__(self):
         self.__conn.close()
@@ -232,6 +233,7 @@ class DataBase:
         event[9] = protocol_map[event[9]]
         return event
 
+
 def long2ip(long_var):
     """
     将long长整型的ip表示为字符串形式
@@ -244,7 +246,7 @@ def long2ip(long_var):
     ip = ""
     for i in range(3, -1, -1):
         temp = 256**i
-        ip += str(long_var/temp)
+        ip += str(int(long_var/temp))
         long_var -= int(long_var/temp)*temp
         if i != 0:
             ip += "."
