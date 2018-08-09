@@ -4,6 +4,7 @@ import pymysql
 import socket
 import sys
 import time
+# HOST = "118.25.94.36"
 HOST = "192.168.178.11"
 DATABASE = "snort"
 USER = "snort"
@@ -56,6 +57,24 @@ class DataBase:
         result = cur.fetchone()
         cur.close()
         return result[0]
+
+    def get_event_count_top(self, top):
+        """
+        get Top 10 event sig_name's count
+        :param top:
+        :return:
+        """
+        sql = "SELECT sig_name , count(sig_name) as sig_count " \
+              "FROM event, signature " \
+              "WHERE event.signature = signature.sig_id " \
+              "GROUP BY sig_name " \
+              "ORDER BY sig_count DESC " \
+              "LIMIT %s;" % top
+        cur = self.__conn.cursor()
+        cur.execute(sql)
+        result = cur.fetchall()
+        cur.close()
+        return result
 
     def create_ids_table(self):
         sql = "DROP TABLE IF EXISTS ids_event"
@@ -233,6 +252,53 @@ class DataBase:
         event[9] = protocol_map[event[9]]
         return event
 
+    def get_event_count_by_sig(self, sig_priority):
+        """
+        get the event count through different priority
+        :param sig_priority: has three value: 1,2,3
+        :return:
+        """
+        if sig_priority == 0:
+            sql = "SELECT count(cid) " \
+                  "FROM event, signature " \
+                  "where event.signature = signature.sig_id; "
+        else:
+            sql = "SELECT count(cid) " \
+              "FROM event, signature " \
+              "where event.signature = signature.sig_id " \
+              "AND signature.sig_priority = %s;" % sig_priority
+        cur = self.__conn.cursor()
+        cur.execute(sql)
+        result = cur.fetchone()
+        return result[0]
+
+    def get_event_count_by_time_sig(self, time_type='day', sig_priority=1):
+        """
+        get event count by different time type step
+        :param time_type:
+        :param sig_priority:
+        :return: a list of tuple, first is event count, second is year, third is month, so on...
+        """
+        if sig_priority == 0:
+            sig_part = ""
+        else:
+            sig_part = "AND signature.sig_priority = {} ".format(sig_priority)
+        if time_type == 'day':
+            time_part = "year(timestamp),month(timestamp),day(timestamp) "
+        elif time_type == 'month':
+            time_part = "year(timestamp),month(timestamp) "
+        sql = "SELECT " \
+            "count(cid), {time_part} " \
+            "FROM event, signature " \
+            "WHERE event.signature = signature.sig_id " \
+            "{sig_part}" \
+            "GROUP BY " \
+            "{time_part};".format(time_part=time_part, sig_part=sig_part)
+        cur = self.__conn.cursor()
+        cur.execute(sql)
+        result = cur.fetchall()
+        return result
+
 
 def long2ip(long_var):
     """
@@ -267,3 +333,6 @@ if __name__ == '__main__':
     print(db.get_events_v2(0, 600, True, True, True, False))
     print(db.get_events_v2(0, 60, False, True, True, False))
     print(db.get_event_protocol(200))
+    print(db.get_event_count_by_sig(1))
+    print(db.get_event_count_by_time_sig('month', 3))
+    print(db.get_event_count_top(10))

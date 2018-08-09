@@ -13,20 +13,21 @@ from core.sql import long2ip
 from core.read_pcap import PcapReader
 import os
 from core.monitor import Monitor, MonitorJsonEncoder
+from core.vul_scan import get_result
 import pcapy
-from flask_script import Manager
 from pymongo import MongoClient
+# from core.model import db
 
 app = Flask(__name__)
+# db.init_app(app)
 CORS(app, supports_credentials=True)
 UPLOAD_FOLDER = "upload"
-ALLOWED_EXTENSIONS = {"pcap"}
+ALLOWED_EXTENSIONS = {"pcap", "cap"}
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['JSON_AS_ASCII'] = False
-# socketio = SocketIO(app)
-# manager = Manager(app)
-
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://snort:shaoshuai@192.168.178.11/snort'
+nse_path = os.path.join(os.getcwd(), 'nse')
 
 @app.route('/user/login', methods=["POST"])
 def login():
@@ -222,6 +223,11 @@ def remove_pcap(filename):
     })
 
 
+"""
+use to monitor
+"""
+
+
 @app.route("/monitor/interface")
 def get_interface_list():
     devs = pcapy.findalldevs()
@@ -232,43 +238,88 @@ def get_interface_list():
     })
 
 
-@app.route("/monitor/start/<interface>", methods=["GET"])
-def start_monitor(interface):
-    if not hasattr(app.config, 'MONITOR') or app.config['MONITOR'] is None:
-        app.config['MONITOR'] = Monitor(interface)
-    elif app.config['INTERFACE'] != interface:
-        app.config['MONITOR'] = Monitor(interface)
-
-    ids = MongoClient().ids
-    ids.drop_collection('packet')
-    print("[MONITOR] start monitor", file=sys.stderr)
-    app.config['MONITOR'].start()
+@app.route("/monitor/start", methods=["POST"])
+def start_monitor():
+    data = request.get_json()
+    count = data['count']
+    interface = data['inter']
+    monitor = Monitor(interface, int(count))
+    monitor.start()
     return jsonify({
         'code': 20000,
-        'result': 'success'
     })
 
 
-@app.route("/monitor/stop/<interface>", methods=["GET"])
-def stop_monitor(interface):
-    if hasattr(app.config, 'MONITOR') and app.config['MONITOR']:
-        app.config['MONITOR'].stop()
-        del app.config['MONITOR']
-    print("[MONITOR] stop monitor", file=sys.stderr)
-    return jsonify({
-        'code': 20000,
-        'result': 'success'
-    })
+@app.route("/monitor/packet", methods=["POST"])
+def send_packet():
+    data = request.get_json()
+    start = data['start']
+    end = data['end']
 
-
-@app.route("/monitor/packet/<int:id>", methods=["GET"])
-def send_packet(id):
     mongo = MongoClient()
     db = mongo.ids
     packet = db.packet
-    cursor = packet.find({"id": {"$gte": id}})
-    # print(dir(cursor), file=sys.stderr)
+    cursor = packet.find({"id": {"$gte": start, "$lt": end}})
     result = list(cursor)
+    cursor = packet.find().count()
+    result = {
+        'code': 20000,
+        'result': result,
+        'count': cursor
+    }
+    result = json.dumps(result, cls=MonitorJsonEncoder)
+    response = make_response(result)
+    response.headers['Content-Type'] = 'application/json'
+    return response
+
+
+"""
+use to dashboard
+"""
+
+
+@app.route("/dashboard/sig/<int:sig_priority>", methods=["GET"])
+def get_sig_count(sig_priority):
+    db = sql.DataBase()
+    count = db.get_event_count_by_sig(sig_priority)
+    return jsonify({
+        'code': 20000,
+        'sig': sig_priority,
+        'count': count
+    })
+
+
+@app.route('/dashboard/sig/<time>/<int:sig_priority>', methods=["GET"])
+def get_sig_count_by_time(time, sig_priority):
+    db = sql.DataBase()
+    counts = db.get_event_count_by_time_sig(time, sig_priority)
+    return jsonify({
+        'code': 20000,
+        'sig': sig_priority,
+        'time': time,
+        'counts': counts
+    })
+
+
+@app.route('/dashboard/sig/top/<int:num>', methods=["GET"])
+def get_event_count_by_num(num):
+    db = sql.DataBase()
+    counts = db.get_event_count_top(num)
+    return jsonify({
+        'code': 20000,
+        'counts': counts
+    })
+
+
+@app.route('/dashboard/vul/top', methods=["GET"])
+def get_vul_profile():
+    mongo = MongoClient()
+    db = mongo.ids
+    vuls = db.vulnerability
+    result = vuls.find().sort("date", -1).limit(10)
+    result = list(result)
+    for item in result:
+        item['level'] = item['level'].split(' ')[0]
     result = {
         'code': 20000,
         'result': result
@@ -279,5 +330,37 @@ def send_packet(id):
     return response
 
 
+# vulnerability
+@app.route('/vul/scanner', methods=["POST"])
+def get_system_info():
+    ip = request.get_json()['ip']
+    info = get_result(ip, nse_path)
+    return jsonify({
+        'code': 20000,
+        'result': info
+    })
+
+
+@app.route('/vul/list', methods=['POST'])
+def get_vulnerability():
+    data = request.get_json()
+    start = int(data['start'])
+    end = int(data['end'])
+    mongo = MongoClient()
+    db = mongo.ids
+    vulner = db.vulnerability
+    cursor = vulner.find().limit(end-start).skip(start)
+    result = list(cursor)
+    cursor = vulner.find().count()
+    result = {
+        'code': 20000,
+        'result': result,
+        'count': cursor
+    }
+    result = json.dumps(result, cls=MonitorJsonEncoder)
+    response = make_response(result)
+    response.headers['Content-Type'] = 'application/json'
+    return response
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port=9001)

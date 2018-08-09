@@ -3,6 +3,7 @@ from pyshark import FileCapture
 import sys
 from io import StringIO
 
+
 class PcapReader:
     def __init__(self, filename, summary=True, keep_packets=False):
         self.result = []
@@ -35,6 +36,7 @@ class PcapReader:
         info = mystdout.getvalue()
         detail = []
         index = -1
+        # packet.pretty_print()
         for line in info.split('\n'):
             if "Layer" in line:
                 index += 1
@@ -54,7 +56,8 @@ class PcapReader:
 if __name__ == '__main__':
     # reader = PcapReader('./upload/DNP3-RequestLink.pcap', summary=False, keep_packets=True)
     # reader = PcapReader('./upload/s7comm_downloading_block_db1.pcap')
-    reader = PcapReader('./upload/s7-1200-hmi.pcap', summary=False, keep_packets=True)
+    # reader = PcapReader('./upload/s7-1200-hmi.pcap', summary=False, keep_packets=True)
+    reader = PcapReader('./upload/omron.pcap', summary=False, keep_packets=True)
     # reader = PcapReader('./upload/s7comm_reading_setting_plc_time.pcap')
     # reader = PcapReader('./upload/4SICS-GeekLounge-151020.pcap')
     info = reader.get_detail(1)

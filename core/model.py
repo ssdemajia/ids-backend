@@ -2,75 +2,75 @@
 from sqlalchemy import Column, DateTime, Index, Integer, SmallInteger, String, Text
 from flask_sqlalchemy import SQLAlchemy
 
-
 db = SQLAlchemy()
 
 
-class AcidAg(db.Model):
-    __tablename__ = 'acid_ag'
 
-    ag_id = db.Column(db.Integer, primary_key=True, index=True)
-    ag_name = db.Column(db.String(40))
-    ag_desc = db.Column(db.Text)
-    ag_ctime = db.Column(db.DateTime)
-    ag_ltime = db.Column(db.DateTime)
-
-
-class AcidAgAlert(db.Model):
-    __tablename__ = 'acid_ag_alert'
-    __table_args__ = (
-        db.Index('ag_sid', 'ag_sid', 'ag_cid'),
-    )
-
-    ag_id = db.Column(db.Integer, primary_key=True, nullable=False, index=True)
-    ag_sid = db.Column(db.Integer, primary_key=True, nullable=False)
-    ag_cid = db.Column(db.Integer, primary_key=True, nullable=False)
-
-
-class AcidEvent(db.Model):
-    __tablename__ = 'acid_event'
-
-    sid = db.Column(db.Integer, primary_key=True, nullable=False)
-    cid = db.Column(db.Integer, primary_key=True, nullable=False)
-    signature = db.Column(db.Integer, nullable=False, index=True)
-    sig_name = db.Column(db.String(255), index=True)
-    sig_class_id = db.Column(db.Integer, index=True)
-    sig_priority = db.Column(db.Integer, index=True)
-    timestamp = db.Column(db.DateTime, nullable=False, index=True)
-    ip_src = db.Column(db.Integer, index=True)
-    ip_dst = db.Column(db.Integer, index=True)
-    ip_proto = db.Column(db.Integer, index=True)
-    layer4_sport = db.Column(db.Integer, index=True)
-    layer4_dport = db.Column(db.Integer, index=True)
-
-
-class AcidIpCache(db.Model):
-    __tablename__ = 'acid_ip_cache'
-
-    ipc_ip = db.Column(db.Integer, primary_key=True, index=True)
-    ipc_fqdn = db.Column(db.String(50))
-    ipc_dns_timestamp = db.Column(db.DateTime)
-    ipc_whois = db.Column(db.Text)
-    ipc_whois_timestamp = db.Column(db.DateTime)
-
-
-class BaseRole(db.Model):
-    __tablename__ = 'base_roles'
-
-    role_id = db.Column(db.Integer, primary_key=True)
-    role_name = db.Column(db.String(20), nullable=False)
-    role_desc = db.Column(db.String(75), nullable=False)
-
-
-class BaseUser(db.Model):
-    __tablename__ = 'base_users'
-
-    usr_id = db.Column(db.Integer, primary_key=True)
-    usr_login = db.Column(db.String(25), nullable=False, index=True)
-    usr_pwd = db.Column(db.String(32), nullable=False)
-    usr_name = db.Column(db.String(75), nullable=False)
-    role_id = db.Column(db.Integer, nullable=False)
-    usr_enabled = db.Column(db.Integer, nullable=False)
+# class AcidAg(db.Model):
+#     __tablename__ = 'acid_ag'
+#
+#     ag_id = db.Column(db.Integer, primary_key=True, index=True)
+#     ag_name = db.Column(db.String(40))
+#     ag_desc = db.Column(db.Text)
+#     ag_ctime = db.Column(db.DateTime)
+#     ag_ltime = db.Column(db.DateTime)
+#
+#
+# class AcidAgAlert(db.Model):
+#     __tablename__ = 'acid_ag_alert'
+#     __table_args__ = (
+#         db.Index('ag_sid', 'ag_sid', 'ag_cid'),
+#     )
+#
+#     ag_id = db.Column(db.Integer, primary_key=True, nullable=False, index=True)
+#     ag_sid = db.Column(db.Integer, primary_key=True, nullable=False)
+#     ag_cid = db.Column(db.Integer, primary_key=True, nullable=False)
+#
+#
+# class AcidEvent(db.Model):
+#     __tablename__ = 'acid_event'
+#
+#     sid = db.Column(db.Integer, primary_key=True, nullable=False)
+#     cid = db.Column(db.Integer, primary_key=True, nullable=False)
+#     signature = db.Column(db.Integer, nullable=False, index=True)
+#     sig_name = db.Column(db.String(255), index=True)
+#     sig_class_id = db.Column(db.Integer, index=True)
+#     sig_priority = db.Column(db.Integer, index=True)
+#     timestamp = db.Column(db.DateTime, nullable=False, index=True)
+#     ip_src = db.Column(db.Integer, index=True)
+#     ip_dst = db.Column(db.Integer, index=True)
+#     ip_proto = db.Column(db.Integer, index=True)
+#     layer4_sport = db.Column(db.Integer, index=True)
+#     layer4_dport = db.Column(db.Integer, index=True)
+#
+#
+# class AcidIpCache(db.Model):
+#     __tablename__ = 'acid_ip_cache'
+#
+#     ipc_ip = db.Column(db.Integer, primary_key=True, index=True)
+#     ipc_fqdn = db.Column(db.String(50))
+#     ipc_dns_timestamp = db.Column(db.DateTime)
+#     ipc_whois = db.Column(db.Text)
+#     ipc_whois_timestamp = db.Column(db.DateTime)
+#
+#
+# class BaseRole(db.Model):
+#     __tablename__ = 'base_roles'
+#
+#     role_id = db.Column(db.Integer, primary_key=True)
+#     role_name = db.Column(db.String(20), nullable=False)
+#     role_desc = db.Column(db.String(75), nullable=False)
+#
+#
+# class BaseUser(db.Model):
+#     __tablename__ = 'base_users'
+#
+#     usr_id = db.Column(db.Integer, primary_key=True)
+#     usr_login = db.Column(db.String(25), nullable=False, index=True)
+#     usr_pwd = db.Column(db.String(32), nullable=False)
+#     usr_name = db.Column(db.String(75), nullable=False)
+#     role_id = db.Column(db.Integer, nullable=False)
+#     usr_enabled = db.Column(db.Integer, nullable=False)
 
 
 class Datum(db.Model):
@@ -251,3 +251,13 @@ class Udphdr(db.Model):
     udp_dport = db.Column(db.SmallInteger, nullable=False, index=True)
     udp_len = db.Column(db.SmallInteger)
     udp_csum = db.Column(db.SmallInteger)
+
+
+if __name__ == '__main__':
+    from flask import Flask
+    app = Flask(__name__)
+    db.init_app(app)
+    app.app_context().push()
+    with app.app_context():
+        session = db.session()
+        print(Tcphdr.query.all())

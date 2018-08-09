@@ -16,30 +16,35 @@ class MonitorJsonEncoder(JSONEncoder):
 
 
 class Monitor(threading.Thread):
-    def __init__(self, interface):
+    def __init__(self, interface, count):
         super(Monitor, self).__init__()
-        self.running = True
         self.interface = interface
+        self.count = count
         self.client = MongoClient()
         self.db = self.client.ids
-        self.packet = self.db.packet
+        self._packet = self.db.packet
+        self.packet_id = 0
 
     def run(self):
-        self.cap = LiveCapture(self.interface, only_summaries=True)
-        while self.running:
-            packets = self.cap.sniff_continuously(packet_count=10)
-            self.process_packet(packets)
-
-    def stop(self):
-        self.running = False
         self.db.drop_collection('packet')
-        self.cap.close()
+        self._packet = self.db.packet
+        self._cap = LiveCapture(self.interface, only_summaries=True)
+        count_per_sniff = 30
+        if self.count < count_per_sniff:
+            count_per_sniff = self.count
+        while self.count > 0:
+            import sys
+            print(self.count, file=sys.stderr)
+            packets = self._cap.sniff_continuously(packet_count=count_per_sniff)
+            self.count -= count_per_sniff
+            self.process_packet(packets)
 
     def process_packet(self, packets):
         temp = []
         for packet in packets:
+            # print(packet)
             item = {
-                "id": int(packet.no),
+                "id": self.packet_id,
                 "src": packet.source,
                 "dst": packet.destination,
                 "time": packet.time,
@@ -47,18 +52,20 @@ class Monitor(threading.Thread):
                 "info": packet.info,
                 "length": packet.length
             }
+            self.packet_id += 1
             temp.append(item)
-        self.packet.insert(temp)
+        self._packet.insert(temp)
 
     def __del__(self):
-        self.cap.clear()
-        self.cap.close()
+        self._cap.clear()
+        self._cap.close()
+        self.client.close()
 
 
 if __name__ == '__main__':
     inter = "enp3s0"
-    monitor = Monitor(inter)
-    # monitor.run()
+    monitor = Monitor(inter, 1000)
+    monitor.run()
     from flask import jsonify
     import json
-    print(json.dumps(list(monitor.packet.find({"id": {"$gt": 230}})), cls=MonitorJsonEncoder))
+    print(json.dumps(list(monitor._packet.find()), cls=MonitorJsonEncoder))
