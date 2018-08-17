@@ -74,11 +74,11 @@ def choice_protocol(ip_address, ports, nse_path):
         else:
             raise TypeError('Unsupport Port')
         option = '{need_udp} -p {port} --script {script}'.format(need_udp=need_udp, port=port, script=script_path)
-        info.append(get_info(ip_address, option))
+        info.append(get_info(ip_address, option, port))
     return info
 
 
-def get_info(ip_address, option):
+def get_info(ip_address, option, port):
     nm = NmapProcess(ip_address, options=option)
     nm.run()
     info = dict()
@@ -98,10 +98,24 @@ def get_info(ip_address, option):
         if len(script_output) == 0:
             return
         protocol_element = script_output[0]['elements']
-        info = protocol_element
+
+        parse_protocol_info(port, protocol_element, info)
     else:
         print(nm.stderr)
     return info
+
+
+def parse_protocol_info(port, protocol_element, info):
+    if port == 102:
+        info['硬件信息'] = protocol_element['Basic Hardware']
+        info['系统名称'] = protocol_element['System Name']
+        info['信息版权'] = protocol_element['Copyright']
+        info['版本号'] = protocol_element['Version']
+        info['模块'] = protocol_element['Module Type']
+        info['序列号'] = protocol_element['Serial Number']
+        info['模块型号'] = protocol_element['Module']
+    # elif port == 502:
+    #     info['']
 
 
 def get_result(ip, nse_path):
@@ -111,10 +125,10 @@ def get_result(ip, nse_path):
 
 
 if __name__ == '__main__':
-    # ip = '140.206.150.51'  # s7 o
+    ip = '140.206.150.51'  # s7 o
     # ip = "166.139.80.97"  # modbus o
     # ip = "108.237.140.9 "  # bacnet o
-    ip = "166.250.228.16"  # enip
+    # ip = "166.250.228.16"  # enip
     # ip = "151.59.129.100"  # pcworx
     # ip = "193.252.187.123"  # omronudp
     # ip = "166.143.173.169"  # proconos o
