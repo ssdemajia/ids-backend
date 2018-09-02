@@ -133,6 +133,7 @@ if __name__ == '__main__':
     # ip = "193.252.187.123"  # omronudp
     # ip = "166.143.173.169"  # proconos o
     # ip = "88.26.221.244"  # melsoft tcp o
+    # ip = '200.29.11.5' # 789 red lion G303
     nse_path = os.path.join(os.getcwd(), '..', 'nse')
     result = get_result(ip, nse_path)
     import json

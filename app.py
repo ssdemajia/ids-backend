@@ -26,8 +26,9 @@ ALLOWED_EXTENSIONS = {"pcap", "cap"}
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['JSON_AS_ASCII'] = False
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://snort:shaoshuai@192.168.178.11/snort'
+# app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://snort:shaoshuai@192.168.178.11/snort'
 nse_path = os.path.join(os.getcwd(), 'nse')
+
 
 @app.route('/user/login', methods=["POST"])
 def login():
@@ -54,26 +55,26 @@ def get_info():
         'avatar': '123'
     })
 
-
-@app.route('/events', methods=["POST"])
-def get_events():
-    db = sql.DataBase()
-    cid = json.loads(request.data.decode('utf-8'))['cid']
-    print(cid, file=sys.stderr)
-    event_count = db.get_event_count()
-    print(event_count, file=sys.stderr)
-    if event_count <= cid:
-        response = jsonify({
-            'error': 'id too large',
-            'code': 50016})
-        response.status_code = 404
-        return response
-    events = db.get_events(cid)
-    print(events, file=sys.stderr)
-    return jsonify({
-        'code': 20000,
-        'result': events
-    })
+#
+# @app.route('/events', methods=["POST"])
+# def get_events():
+#     db = sql.DataBase()
+#     cid = json.loads(request.data.decode('utf-8'))['cid']
+#     print(cid, file=sys.stderr)
+#     event_count = db.get_event_count()
+#     print(event_count, file=sys.stderr)
+#     if event_count <= cid:
+#         response = jsonify({
+#             'error': 'id too large',
+#             'code': 50016})
+#         response.status_code = 404
+#         return response
+#     events = db.get_events(cid)
+#     print(events, file=sys.stderr)
+#     return jsonify({
+#         'code': 20000,
+#         'result': events
+#     })
 
 
 @app.route('/count/<type>', methods=["GET"])
@@ -164,7 +165,10 @@ def upload():
             read = PcapReader(path)
             result = read.get_specify()
             read.close()
-            return jsonify(result)
+            return jsonify({
+                'code': 20000,
+                'result': result
+            })
     response = jsonify({
         'error': 'Error method',
         'code': 50024})

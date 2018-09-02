@@ -15,7 +15,7 @@ class PcapReader:
                 "id": packet.no,
                 "src": packet.source,
                 "dst": packet.destination,
-                "time": packet.time,
+                "time": round(float(packet.time), 5),
                 "protocol": packet.protocol,
                 "info": packet.info,
                 "length": packet.length

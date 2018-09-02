@@ -16,6 +16,7 @@ mongo = MongoClient()
 db = mongo.ids
 vul = db.vulnerability
 
+
 def get_urls():
     url = "http://ics.cnvd.org.cn/?title=&max=10000&offset=10"
     r = requests.get(url, headers=headers, cookies=cookies)
