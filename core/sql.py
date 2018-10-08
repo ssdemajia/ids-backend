@@ -5,7 +5,7 @@ import socket
 import sys
 import time
 # HOST = "118.25.94.36"
-HOST = "192.168.178.11"
+HOST = "192.168.178.10"
 DATABASE = "snort"
 USER = "snort"
 PASSWORD = "shaoshuai"
@@ -30,7 +30,7 @@ class DataBase:
                                       user=USER,
                                       passwd=PASSWORD,
                                       db=DATABASE,
-                                    )
+                                     )
 
     def __del__(self):
         self.__conn.close()

@@ -1,21 +1,28 @@
 # coding=utf-8
 from __future__ import print_function
-import json
+
 from flask import Flask
 from flask import request
 from flask import jsonify
 from flask import make_response
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
-import sys
-import core.sql as sql
+from pymongo import MongoClient
+
 from core.sql import long2ip
 from core.read_pcap import PcapReader
-import os
 from core.monitor import Monitor, MonitorJsonEncoder
-from core.vul_scan import get_result
+
+from user import admin
+from vul import vulnerability
+
+import sys
+import core.sql as sql
+import os
 import pcapy
-from pymongo import MongoClient
+import pymysql
+import json
+
 # from core.model import db
 
 app = Flask(__name__)
@@ -26,55 +33,9 @@ ALLOWED_EXTENSIONS = {"pcap", "cap"}
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['JSON_AS_ASCII'] = False
-# app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://snort:shaoshuai@192.168.178.11/snort'
-nse_path = os.path.join(os.getcwd(), 'nse')
 
-
-@app.route('/user/login', methods=["POST"])
-def login():
-    req_content = json.loads(request.data.decode("utf-8"))
-    admin = req_content["username"]
-    password = req_content["password"]
-    print("admin:{} password:{}".format(admin, password), file=sys.stderr)
-    return jsonify({"code": 20000, 'token': "shaoshuai"})
-
-
-@app.route('/user/logout', methods=["POST"])
-def logout():
-    req = request.get_json()
-    return jsonify({"code": 20000})
-
-
-@app.route('/user/info', methods=["GET"])
-def get_info():
-    token = request.args.get("token")
-    return jsonify({
-        "code": 20000,
-        'roles': 'admin',
-        'name': 'shaoshuai',
-        'avatar': '123'
-    })
-
-#
-# @app.route('/events', methods=["POST"])
-# def get_events():
-#     db = sql.DataBase()
-#     cid = json.loads(request.data.decode('utf-8'))['cid']
-#     print(cid, file=sys.stderr)
-#     event_count = db.get_event_count()
-#     print(event_count, file=sys.stderr)
-#     if event_count <= cid:
-#         response = jsonify({
-#             'error': 'id too large',
-#             'code': 50016})
-#         response.status_code = 404
-#         return response
-#     events = db.get_events(cid)
-#     print(events, file=sys.stderr)
-#     return jsonify({
-#         'code': 20000,
-#         'result': events
-#     })
+app.register_blueprint(admin, url_prefix='/user')
+app.register_blueprint(vulnerability, url_prefix='/vul')
 
 
 @app.route('/count/<type>', methods=["GET"])
@@ -185,14 +146,30 @@ def upload_lists():
 
 
 @app.route("/upload/<filename>", methods=["GET"])
-def get_dissect_file(filename):
+def get_file_length(filename):
     path = os.path.join(os.getcwd(), app.config['UPLOAD_FOLDER'], filename)
-    read = PcapReader(path)
-    result = read.get_specify()
+    read = PcapReader(path, keep_packets=True, summary=True)
+    length = read.packet_length()
     read.close()
     return jsonify({
         'code': 20000,
-        'result': result
+        'length': length
+    })
+
+
+@app.route("/upload/<filename>", methods=["POST"])
+def get_dissect_file(filename):
+    data = request.get_json()
+    start = data['start']
+    end = data['end']
+    path = os.path.join(os.getcwd(), app.config['UPLOAD_FOLDER'], filename)
+    read = PcapReader(path, keep_packets=True, summary=True)
+    result, length = read.get_specify(start, end)
+    read.close()
+    return jsonify({
+        'code': 20000,
+        'result': result,
+        'length': length
     })
 
 
@@ -284,7 +261,13 @@ use to dashboard
 
 @app.route("/dashboard/sig/<int:sig_priority>", methods=["GET"])
 def get_sig_count(sig_priority):
-    db = sql.DataBase()
+    try:
+        db = sql.DataBase()
+    except pymysql.err.OperationalError as e:
+        return jsonify({
+            'code': 50027,
+            'error': 'db error'
+        })
     count = db.get_event_count_by_sig(sig_priority)
     return jsonify({
         'code': 20000,
@@ -313,58 +296,6 @@ def get_event_count_by_num(num):
         'code': 20000,
         'counts': counts
     })
-
-
-@app.route('/dashboard/vul/top', methods=["GET"])
-def get_vul_profile():
-    mongo = MongoClient()
-    db = mongo.ids
-    vuls = db.vulnerability
-    result = vuls.find().sort("date", -1).limit(10)
-    result = list(result)
-    for item in result:
-        item['level'] = item['level'].split(' ')[0]
-    result = {
-        'code': 20000,
-        'result': result
-    }
-    result = json.dumps(result, cls=MonitorJsonEncoder)
-    response = make_response(result)
-    response.headers['Content-Type'] = 'application/json'
-    return response
-
-
-# vulnerability
-@app.route('/vul/scanner', methods=["POST"])
-def get_system_info():
-    ip = request.get_json()['ip']
-    info = get_result(ip, nse_path)
-    return jsonify({
-        'code': 20000,
-        'result': info
-    })
-
-
-@app.route('/vul/list', methods=['POST'])
-def get_vulnerability():
-    data = request.get_json()
-    start = int(data['start'])
-    end = int(data['end'])
-    mongo = MongoClient()
-    db = mongo.ids
-    vulner = db.vulnerability
-    cursor = vulner.find().limit(end-start).skip(start)
-    result = list(cursor)
-    cursor = vulner.find().count()
-    result = {
-        'code': 20000,
-        'result': result,
-        'count': cursor
-    }
-    result = json.dumps(result, cls=MonitorJsonEncoder)
-    response = make_response(result)
-    response.headers['Content-Type'] = 'application/json'
-    return response
 
 
 if __name__ == '__main__':

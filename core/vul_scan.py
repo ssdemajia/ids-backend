@@ -1,8 +1,19 @@
 from libnmap.process import NmapProcess
 from libnmap.parser import NmapParser, NmapParserException
+from pymongo import MongoClient
+
+from scan_models.s7 import s7_scan, s7_resolve
+from scan_models.modbus import modbus_scan, modbus_resolve
+from scan_models.bacnet import bacnet_scan, bacnet_resolve
+from scan_models.omron import omron_scan, omron_resolve
+from scan_models.ethip import ethip_scan, ethip_resolve
+from scan_models.poconos import proconos_scan, proconos_resolve
+from scan_models.pcworx import pcworx_scan, pcworx_resolve
+
 import os
 import itertools
-
+import re
+import requests
 # EthNet/IP  TCP 44818
 # Mitsubishi MELSOFT UDP/5008 TCP/5007
 # omron-udp omron fins 9600
@@ -11,8 +22,25 @@ import itertools
 # Schneider modbus/tcp TCP 502
 # dnp3 20000
 # bacnet udp 47808
+# proconos 20547
+# wincc udp 137
+# scalance udp 161
 tcp_ports = [44818, 102, 502, 1962, 20547, 5007]
-udp_ports = [9600, 47808, 5008]
+udp_ports = [161, 137, 9600, 47808, 5008]
+company = ['siemens', 'schneider', 'mitsubishi', 'rockwell', 'pcworx', 'proconos']
+protocols = ['bacnet']
+special_type = ['plc']
+
+
+def check_clearscada(ip_address):
+    try:
+        resp = requests.get('http://'+ip_address)
+    except Exception as e:
+        return ""
+    info = resp.headers.get('Server', '')
+    if 'clearscada' in info.lower():
+        return info
+    return ""
 
 
 def test_service(ip_address):
@@ -30,16 +58,17 @@ def test_service(ip_address):
 def test_port(ip_address, option):
     nm = NmapProcess(ip_address, options=option)
     nm.run()
-    if nm.rc == 0:
-        parsed = NmapParser.parse(nm.stdout)
-        if len(parsed.hosts) == 0:
-            return False
-        host = parsed.hosts[0]
-        if len(host.services) == 0:
-            return False
-        service = host.services[0]
-        if "open" in service.state:
-            return True
+    if nm.rc != 0:
+        return False
+    parsed = NmapParser.parse(nm.stdout)
+    if len(parsed.hosts) == 0:
+        return False
+    host = parsed.hosts[0]
+    if len(host.services) == 0:
+        return False
+    service = host.services[0]
+    if "open" in service.state:
+        return True
     return False
 
 
@@ -71,6 +100,17 @@ def choice_protocol(ip_address, ports, nse_path):
         elif port == 5008:  #
             script_path += '/melsoft-udp.nse'
             need_udp = '-sU'
+        elif port == 161:   # siemens scalance
+            script_path += '/SCADA/Siemens-Scalance-module.nse'
+            need_udp = '-sU'
+        elif port == 137:
+            script_path += '/SCADA/Siemens-WINCC.nse'
+            need_udp = '-sU'
+        elif port == 80:
+            web_path = [
+                '/SCADA/Siemens-HMI-miniweb.nse',   # todo
+                '/SCADA/Siemens-CommunicationsProcessor.nse'    # todo
+            ]
         else:
             raise TypeError('Unsupport Port')
         option = '{need_udp} -p {port} --script {script}'.format(need_udp=need_udp, port=port, script=script_path)
@@ -81,70 +121,112 @@ def choice_protocol(ip_address, ports, nse_path):
 def get_info(ip_address, option, port):
     nm = NmapProcess(ip_address, options=option)
     nm.run()
-    info = dict()
-    if nm.rc == 0:
-        # print(nm.stdout)
-        parsed = NmapParser.parse(nm.stdout)
-        print(parsed)
-        if len(parsed.hosts) == 0:
-            return info
-        host = parsed.hosts[0]
-        if len(host.services) == 0:
-            return info
-        service = host.services[0]
-        if len(service._service_extras) == 0:
-            return
-        script_output = service._service_extras['scripts']
-        if len(script_output) == 0:
-            return
-        protocol_element = script_output[0]['elements']
 
-        parse_protocol_info(port, protocol_element, info)
-    else:
+    if nm.rc != 0:
         print(nm.stderr)
+
+    parsed = NmapParser.parse(nm.stdout)
+    print(parsed)
+    if len(parsed.hosts) == 0:
+        return
+    host = parsed.hosts[0]
+    if len(host.services) == 0:
+        return
+    service = host.services[0]
+    if len(service._service_extras) == 0:
+        return
+    script_output = service._service_extras['scripts']
+    if len(script_output) == 0:
+        return
+    protocol_element = script_output[0]['elements']
+
+    info = parse_protocol_info(port, protocol_element)
+
     return info
 
 
-def parse_protocol_info(port, protocol_element, info):
-    if port == 102:
-        info['硬件信息'] = protocol_element['Basic Hardware']
-        info['系统名称'] = protocol_element['System Name']
-        info['信息版权'] = protocol_element['Copyright']
-        info['版本号'] = protocol_element['Version']
-        info['模块'] = protocol_element['Module Type']
-        info['序列号'] = protocol_element['Serial Number']
-        info['模块型号'] = protocol_element['Module']
-    # elif port == 502:
-    #     info['']
+def parse_protocol_info(port, protocol_element):
+    info = dict()
+    if port == 102:     # s7
+        info = s7_resolve(protocol_element)
+    elif port == 502:   # modbus
+        info = modbus_resolve(protocol_element)
+    elif port == 47808:  # bacnet
+        info = bacnet_resolve(protocol_element)
+    elif port == 9600:  # omron
+        info = omron_resolve(protocol_element)
+    elif port == 44818:     # ethip
+        info = ethip_resolve(protocol_element)
+    elif port == 20547:     # proconos
+        info = proconos_resolve(protocol_element)
+    elif port == 1962:
+        info = pcworx_resolve(protocol_element)
+    # elif port == 5007 or port == 5008:
+    #     info['CPU型号'] = protocol_element.get('CPUINFO', '')
+    #     info['PLC类型'] = 'Mitsubishi MelSoft'
+    #     info['profile'] = 'Mitsubishi MelSoft'
+    #     info['key'] = ['Mitsubishi MelSoft']
+    if len(info) != 0:
+        info['port'] = port
+    return info
 
 
 def get_result(ip, nse_path):
     ports = test_service(ip)
-    info = choice_protocol(ip, ports, nse_path)
+    ifs = choice_protocol(ip, ports, nse_path)
+    result = None
+    for info in ifs:  # may be has multi result, we should choice one.
+        if info is not None and len(info) > 0:
+            result = info
+            break
+    return result
+
+
+def vul_scan(info):
+    port = info['port']
+    keys = info['key']
+    if port == 102:     # s7
+        info = s7_scan(keys)
+    elif port == 502:   # modbus
+        info = modbus_scan(keys)
+    elif port == 47808:  # bacnet
+        info = bacnet_scan(keys)
+    elif port == 9600:  # omron
+        info = omron_scan(keys)     # todo
+    elif port == 44818:     # ethip
+        info = ethip_scan(keys)     # todo
+    elif port == 20547:     # proconos
+        info = proconos_scan(keys)
+    elif port == 1962:   # pcworx
+        info = pcworx_scan(keys)
+    elif port == 5007 or port == 5008:  # todo
+        pass
+
     return info
 
 
 if __name__ == '__main__':
-    ip = '140.206.150.51'  # s7 o
+    # ip = '140.206.150.51'  # s7 o
     # ip = "166.139.80.97"  # modbus o
-    # ip = "108.237.140.9 "  # bacnet o
+    # ip = "24.248.68.156"  # bacnet o
     # ip = "166.250.228.16"  # enip
-    # ip = "151.59.129.100"  # pcworx
+    # ip = "37.82.140.153"  # pcworx
     # ip = "193.252.187.123"  # omronudp
-    # ip = "166.143.173.169"  # proconos o
+    ip = "188.94.194.99"  # proconos o
     # ip = "88.26.221.244"  # melsoft tcp o
     # ip = '200.29.11.5' # 789 red lion G303
+    # ip = '166.149.137.48'  # mitsubishi MELSOFT UDP/5008 TCP/5007
+
     nse_path = os.path.join(os.getcwd(), '..', 'nse')
     result = get_result(ip, nse_path)
-    import json
-    import sys
-    print(json.dump(result, sys.stdout))
-    # print(os.listdir(os.path.join(os.getcwd(), '..', 'nse')))
-    # for port in useful_ports:
-    #     info = get_system_info(ip, port, path)
-    #     print(info)
 
+    # import json
+    # import sys
+    # print(json.dump(result, sys.stdout))
 
+    r = vul_scan(result['key'])
+    # r = vul_scan(['CPU 314'])
+    for i in r:
+        print(i['title'])
 
-
-
+    # print(check_clearscada('98.23.98.22'))

@@ -1,0 +1,1 @@
+from .scan import omron_resolve, omron_scan
