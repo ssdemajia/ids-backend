@@ -1,14 +1,17 @@
 # coding=utf-8
 from __future__ import print_function
+
 import pymysql
 import socket
 import sys
 import time
-# HOST = "118.25.94.36"
-HOST = "192.168.178.10"
+import numpy as np
+import psutil
+HOST = "118.25.94.36"
+# HOST = "192.168.178.10"
 DATABASE = "snort"
 USER = "snort"
-PASSWORD = "shaoshuai"
+PASSWORD = "shaoshuai1105"
 
 protocol_map = {
     socket.IPPROTO_IP: "IP",
@@ -299,6 +302,52 @@ class DataBase:
         result = cur.fetchall()
         return result
 
+    def get_event_loc(self):
+        """
+        get event ip and through ip get the location
+        :return:
+        """
+        sql = 'SELECT ip_src, count(ip_src) as icount FROM snort.iphdr group by ip_src order by icount desc;'
+        cur = self.__conn.cursor()
+        cur.execute(sql)
+        result = cur.fetchall()
+        result = [(long2ip(ip), count) for ip, count in result]
+        return result
+
+    def get_score(self):
+        """
+        get the system score: vulnerability脆弱性,scope范围,attackVector攻击向量,eventComplexity事件复杂度
+        :return:
+        """
+        sql = 'SELECT count(ip_src) as icount FROM snort.iphdr group by ip_src order by icount desc;'
+        cur = self.__conn.cursor()
+        cur.execute(sql)
+        result = cur.fetchall()
+        result = [count[0] for count in result]
+        scope = 1 - result[0] / sum(result)    # 攻击最多的那个入侵ip，它的次数越多说明范围越小
+
+        sql = 'SELECT count(signature) as scount FROM snort.event group by signature order by scount desc;'
+        cur = self.__conn.cursor()
+        cur.execute(sql)
+        result = cur.fetchall()
+        result = [count[0] for count in result]
+        arr = np.array(result)
+        event_complexity = 0.5 + 1 / np.std(arr)  # 攻击方式的方差越大说明攻击手段单一
+
+        vulnerability = (psutil.cpu_percent()+psutil.virtual_memory().percent) / 200    # 系统的负载越大则越容易收到攻击后出问题
+        attack_vector = 0.6
+        if len(result) < 500:
+            attack_vector += len(result) / 500  # 攻击手段的丰富程度表明攻击向量的大小
+        else:
+            attack_vector = 0.99
+        return {
+            'scope': scope,
+            'eventComplexity': event_complexity,
+            'vulnerability': vulnerability,
+            'attackVector': attack_vector,
+        }
+
+
 
 def long2ip(long_var):
     """
@@ -327,12 +376,13 @@ if __name__ == '__main__':
     # db.create_ids_table()
 
     # print(db.get_events(1))
-    print(long2ip(3232281273))
-    print(db.get_events_v2(0, 10, True, True, True, True))
-    print(db.get_events_v2(0, 60, True, True, True, False))
-    print(db.get_events_v2(0, 600, True, True, True, False))
-    print(db.get_events_v2(0, 60, False, True, True, False))
-    print(db.get_event_protocol(200))
-    print(db.get_event_count_by_sig(1))
-    print(db.get_event_count_by_time_sig('month', 3))
-    print(db.get_event_count_top(10))
+    # print(long2ip(3232281273))
+    # print(db.get_events_v2(0, 10, True, True, True, True))
+    # print(db.get_events_v2(0, 60, True, True, True, False))
+    # print(db.get_events_v2(0, 600, True, True, True, False))
+    # print(db.get_events_v2(0, 60, False, True, True, False))
+    # print(db.get_event_protocol(200))
+    # print(db.get_event_count_by_sig(1))
+    # print(db.get_event_count_by_time_sig('month', 3))
+    # print(db.get_event_count_top(10))
+    db.get_score()

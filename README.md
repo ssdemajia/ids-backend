@@ -1,12 +1,17 @@
-## datebase to model
-first install the flask-sqlacodegen, pymysql, flask-sqlalchemy
-
-```python
-flask-sqlacodegen --outfile model.py --flask mysql://[username]:[password]@[ip address]/[datebase name]
-```
 mongodb默认的数据目录为/data/db
 
 open mongod
 ```bash
-mongod --log-path=/var/log/mongodb/log --fork
+sudo mongod --logpath=/var/log/mongodb/log --fork
+```
+mongodb databases
+```
+ids
+```
+mongodb collection
+```
+record: 漏洞扫描储存的结果
+location：入侵事件ip和经纬信息
+vulnerability：漏洞库
+scanRecord: 保存每天的漏洞扫描记录,包括高危漏洞多少个，中危漏洞多少，低危漏洞多少
 ```

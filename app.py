@@ -15,12 +15,13 @@ from core.monitor import Monitor, MonitorJsonEncoder
 
 from user import admin
 from vul import vulnerability
+from event import events
+from system_info import system_info
 
 import sys
 import core.sql as sql
 import os
 import pcapy
-import pymysql
 import json
 
 # from core.model import db
@@ -36,6 +37,8 @@ app.config['JSON_AS_ASCII'] = False
 
 app.register_blueprint(admin, url_prefix='/user')
 app.register_blueprint(vulnerability, url_prefix='/vul')
+app.register_blueprint(events, url_prefix='/event')
+app.register_blueprint(system_info, url_prefix='/info')
 
 
 @app.route('/count/<type>', methods=["GET"])
@@ -252,50 +255,6 @@ def send_packet():
     response = make_response(result)
     response.headers['Content-Type'] = 'application/json'
     return response
-
-
-"""
-use to dashboard
-"""
-
-
-@app.route("/dashboard/sig/<int:sig_priority>", methods=["GET"])
-def get_sig_count(sig_priority):
-    try:
-        db = sql.DataBase()
-    except pymysql.err.OperationalError as e:
-        return jsonify({
-            'code': 50027,
-            'error': 'db error'
-        })
-    count = db.get_event_count_by_sig(sig_priority)
-    return jsonify({
-        'code': 20000,
-        'sig': sig_priority,
-        'count': count
-    })
-
-
-@app.route('/dashboard/sig/<time>/<int:sig_priority>', methods=["GET"])
-def get_sig_count_by_time(time, sig_priority):
-    db = sql.DataBase()
-    counts = db.get_event_count_by_time_sig(time, sig_priority)
-    return jsonify({
-        'code': 20000,
-        'sig': sig_priority,
-        'time': time,
-        'counts': counts
-    })
-
-
-@app.route('/dashboard/sig/top/<int:num>', methods=["GET"])
-def get_event_count_by_num(num):
-    db = sql.DataBase()
-    counts = db.get_event_count_top(num)
-    return jsonify({
-        'code': 20000,
-        'counts': counts
-    })
 
 
 if __name__ == '__main__':
