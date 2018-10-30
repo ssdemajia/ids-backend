@@ -109,3 +109,6 @@ upload/
 # idea
 .idea/
 .idea
+
+# setting
+config.py
