@@ -8,9 +8,7 @@ def get_city_by_location(lon, lat):
     url = 'http://api.map.baidu.com/geocoder/v2/?callback=renderReverse&' \
           'location={},{}&output=json&ak=GZeUqGc4Afe6zj33pGiGFrcKRmjx6kUG'
     url = url.format(lat, lon)
-    print(url)
     result = requests.get(url)
-    print(result.content)
     content = result.content.decode('utf-8')
     content = content[content.index('{'):content.rindex('}')+1]
     render_result = json.loads(content)
@@ -59,7 +57,6 @@ def update_loc():
             continue
         values = list(info[:2])
         values.append(count)
-        print(values)
         mongo_loc.insert({
             'name': info[2],
             'value': values
@@ -67,7 +64,5 @@ def update_loc():
 
 
 if __name__ == '__main__':
-    # print(get_loc("148.241.188.15"))
-    # print(get_loc("127.0.0.1"))
-    # print(get_loc("118.26.135.145"))
-    update_loc()
+    print(get_loc("77.44.82.196"))
+    # update_loc()

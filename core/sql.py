@@ -1,17 +1,13 @@
 # coding=utf-8
 from __future__ import print_function
-
+from config import HOST, USER, PASSWORD, DATABASE
 import pymysql
 import socket
 import sys
 import time
 import numpy as np
 import psutil
-HOST = "118.25.94.36"
-# HOST = "192.168.178.10"
-DATABASE = "snort"
-USER = "snort"
-PASSWORD = "shaoshuai1105"
+
 
 protocol_map = {
     socket.IPPROTO_IP: "IP",

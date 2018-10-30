@@ -35,7 +35,7 @@ def bacnet_scan(keys):
     vendor = get_vendor(vendor_key)
     if vendor == '':
         return []
-    result.extend(vul.find({'title': re.compile(pattern.format('bacnet'), re.IGNORECASE),
+    result.extend(vul.find({'description': re.compile(pattern.format('bacnet'), re.IGNORECASE),
                             'product': re.compile(pattern.format(vendor), re.IGNORECASE)}))
     return result
 

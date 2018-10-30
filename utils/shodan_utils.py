@@ -130,3 +130,6 @@ if __name__ == '__main__':
     for i in info:
         search_shodan(i['key'], i['collection'], i['parse func'])
     print('update success')
+
+
+# 82.77.52.152, 78.36.201.246, 5.198.231.44

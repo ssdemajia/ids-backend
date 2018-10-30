@@ -1,6 +1,5 @@
 from libnmap.process import NmapProcess
 from libnmap.parser import NmapParser, NmapParserException
-from pymongo import MongoClient
 
 from scan_models.s7 import s7_scan, s7_resolve
 from scan_models.modbus import modbus_scan, modbus_resolve
@@ -12,7 +11,6 @@ from scan_models.pcworx import pcworx_scan, pcworx_resolve
 
 import os
 import itertools
-import re
 import requests
 # EthNet/IP  TCP 44818
 # Mitsubishi MELSOFT UDP/5008 TCP/5007
@@ -75,7 +73,6 @@ def test_port(ip_address, option):
 def choice_protocol(ip_address, ports, nse_path):
     if len(ports) == 0:
         return
-    info = []
     for port in ports:
         need_udp = ""
         script_path = nse_path
@@ -114,8 +111,10 @@ def choice_protocol(ip_address, ports, nse_path):
         else:
             raise TypeError('Unsupport Port')
         option = '{need_udp} -p {port} --script {script}'.format(need_udp=need_udp, port=port, script=script_path)
-        info.append(get_info(ip_address, option, port))
-    return info
+        info = get_info(ip_address, option, port)
+        if info is not None and len(info) > 0:
+            return info
+    return None
 
 
 def get_info(ip_address, option, port):
@@ -124,8 +123,10 @@ def get_info(ip_address, option, port):
 
     if nm.rc != 0:
         print(nm.stderr)
-
-    parsed = NmapParser.parse(nm.stdout)
+    try:
+        parsed = NmapParser.parse(nm.stdout)
+    except NmapParserException:
+        return
     print(parsed)
     if len(parsed.hosts) == 0:
         return
@@ -139,7 +140,8 @@ def get_info(ip_address, option, port):
     if len(script_output) == 0:
         return
     protocol_element = script_output[0]['elements']
-
+    if protocol_element is None:
+        return
     info = parse_protocol_info(port, protocol_element)
 
     return info
@@ -147,6 +149,7 @@ def get_info(ip_address, option, port):
 
 def parse_protocol_info(port, protocol_element):
     info = dict()
+    system_info = dict()
     if port == 102:     # s7
         info = s7_resolve(protocol_element)
     elif port == 502:   # modbus
@@ -167,24 +170,18 @@ def parse_protocol_info(port, protocol_element):
     #     info['profile'] = 'Mitsubishi MelSoft'
     #     info['key'] = ['Mitsubishi MelSoft']
     if len(info) != 0:
-        info['port'] = port
-    return info
+        system_info['info'] = info
+        system_info['port'] = port
+    return system_info
 
 
-def get_result(ip, nse_path):
+def get_system_info(ip, nse_path):
     ports = test_service(ip)
     ifs = choice_protocol(ip, ports, nse_path)
-    result = None
-    for info in ifs:  # may be has multi result, we should choice one.
-        if info is not None and len(info) > 0:
-            result = info
-            break
-    return result
+    return ifs
 
 
-def vul_scan(info):
-    port = info['port']
-    keys = info['key']
+def vul_scan(keys, port):
     if port == 102:     # s7
         info = s7_scan(keys)
     elif port == 502:   # modbus
@@ -192,9 +189,9 @@ def vul_scan(info):
     elif port == 47808:  # bacnet
         info = bacnet_scan(keys)
     elif port == 9600:  # omron
-        info = omron_scan(keys)     # todo
+        info = omron_scan(keys)
     elif port == 44818:     # ethip
-        info = ethip_scan(keys)     # todo
+        info = ethip_scan(keys)
     elif port == 20547:     # proconos
         info = proconos_scan(keys)
     elif port == 1962:   # pcworx
@@ -209,16 +206,16 @@ if __name__ == '__main__':
     # ip = '140.206.150.51'  # s7 o
     # ip = "166.139.80.97"  # modbus o
     # ip = "24.248.68.156"  # bacnet o
-    # ip = "166.250.228.16"  # enip
+    ip = "166.250.228.16"  # enip
     # ip = "37.82.140.153"  # pcworx
     # ip = "193.252.187.123"  # omronudp
-    ip = "188.94.194.99"  # proconos o
+    # ip = "188.94.194.99"  # proconos o
     # ip = "88.26.221.244"  # melsoft tcp o
     # ip = '200.29.11.5' # 789 red lion G303
     # ip = '166.149.137.48'  # mitsubishi MELSOFT UDP/5008 TCP/5007
 
     nse_path = os.path.join(os.getcwd(), '..', 'nse')
-    result = get_result(ip, nse_path)
+    result = get_system_info(ip, nse_path)
 
     # import json
     # import sys

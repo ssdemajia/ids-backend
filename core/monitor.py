@@ -9,7 +9,7 @@ from flask.json import JSONEncoder
 class MonitorJsonEncoder(JSONEncoder):
     def default(self, o):
         if isinstance(o, ObjectId):
-            return str(o)
+            return
         elif isinstance(o, bytes):
             return o.decode('utf-8')
         return json.JSONEncoder.default(self, o)

@@ -21,15 +21,22 @@ def omron_resolve(protocol_element):
     info['profile'] = protocol_element.get('Controller Model', '') + protocol_element.get('Controller Version', '')
     info['key'] = {
         'Vendor': 'omron',
-        'Model': protocol_element.get('Controller Model', ''),
+        'Model': 'cpu',
         'Version': protocol_element.get('Controller Version', '')
     }
     return info
 
 
 def omron_scan(keys):
-    # Todo
-    return []
+    mongo = MongoClient()
+    db = mongo.ids
+    vul = db.vulnerability
+    result = []
+    result.extend(vul.find({'product': re.compile(pattern.format(keys['Vendor']), re.IGNORECASE),
+                            '$and': [{'description': re.compile(pattern.format(keys['Model']), re.IGNORECASE)}]
+                            }))  # find omron supervisor
+    return result
+
 
 if __name__ == '__main__':
     key = {'Timer/Counter': '8',
@@ -43,3 +50,4 @@ if __name__ == '__main__':
            'Kind of Memory Card': 'No Memory Card',
            'IOM size': '23',
            'Program Area Size': '40'}
+    # print(omron_scan({'Vendor': 'omron', 'Model': 'supervisor'}))

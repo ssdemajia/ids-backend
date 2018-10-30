@@ -20,15 +20,24 @@ def ethip_resolve(protocol_element):
     info['profile'] = protocol_element.get('Device Type', '')
     info['key'] = [protocol_element.get('Vendor', ''), ]
     info['key'] = {
-        'Vendor': protocol_element.get('Vendor', ''),
-        'Model': protocol_element.get('Product Name', ''),
+        'Vendor': 'Rockwell Automation',
     }
+    if '1766' in protocol_element.get('Product Name', ''):
+        info['key']['Model'] = 'MicroLogix 1400'
+    elif 'logix' in protocol_element.get('Product Name'):
+        info['key']['Model'] = 'plc'
     return info
 
 
 def ethip_scan(keys):
-    # Todo
-    return []
+    mongo = MongoClient()
+    db = mongo.ids
+    vul = db.vulnerability
+    result = []
+    # result.extend(vul.find({'product': re.compile(pattern.format(keys['Vendor']), re.IGNORECASE)}))
+    if 'Model' in keys:
+        result.extend(vul.find({'description': re.compile(pattern.format(keys['Model']), re.IGNORECASE)}))
+    return result
 
 
 if __name__ == '__main__':
