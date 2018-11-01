@@ -94,7 +94,7 @@ def parse_omron(info):
     return data
 
 
-if __name__ == '__main__':
+def get_shodan():
     info = [
         # {
         #     'key': 'Module name: CPU',
@@ -130,6 +130,17 @@ if __name__ == '__main__':
     for i in info:
         search_shodan(i['key'], i['collection'], i['parse func'])
     print('update success')
+
+
+def get_legel_ips():
+    mongo = MongoClient()
+    ids = mongo.ids
+    ips = list(ids.record.find({}, {'ip': 1}))
+    result = [print(ip['ip']) for ip in ips]
+
+
+if __name__ == '__main__':
+    get_legel_ips()
 
 
 # 82.77.52.152, 78.36.201.246, 5.198.231.44
