@@ -17,6 +17,7 @@ from user import admin
 from vul import vulnerability
 from event import events
 from system_info import system_info
+from situcation import situation
 
 import sys
 import core.sql as sql
@@ -39,6 +40,7 @@ app.register_blueprint(admin, url_prefix='/user')
 app.register_blueprint(vulnerability, url_prefix='/vul')
 app.register_blueprint(events, url_prefix='/event')
 app.register_blueprint(system_info, url_prefix='/info')
+app.register_blueprint(situation, url_prefix='/situation')
 
 
 @app.route('/count/<type>', methods=["GET"])

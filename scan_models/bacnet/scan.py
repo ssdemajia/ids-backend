@@ -7,6 +7,14 @@ port = 47808
 ip = "24.248.68.156"  # for test
 pattern = r'.*{}.*'
 
+module_type_to_key = {
+    'NiagaraAX': '"Niagara AX"'
+}
+def convert(module_type, type_to_key):
+    for key in module_type_to_key.keys():
+        if key in module_type:
+            return module_type_to_key[key]
+    return module_type
 
 
 def bacnet_resolve(protocol_element):
@@ -30,13 +38,10 @@ def bacnet_scan(keys):
     mongo = MongoClient()
     db = mongo.ids
     vul = db.vulnerability
-    vendor_key = keys['Vendor ID']
     result = []
-    vendor = get_vendor(vendor_key)
-    if vendor == '':
-        return []
-    result.extend(vul.find({'description': re.compile(pattern.format('bacnet'), re.IGNORECASE),
-                            'product': re.compile(pattern.format(vendor), re.IGNORECASE)}))
+    keys = [convert(key, module_type_to_key) for key in keys]
+    keys = ' '.join(keys)
+    result.extend(vul.find({'$text': {'$search': keys}}))
     return result
 
 

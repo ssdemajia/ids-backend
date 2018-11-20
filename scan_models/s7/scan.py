@@ -8,6 +8,17 @@ ip = '140.206.150.51'  # for test
 nse_path = os.path.join(os.getcwd(), '..', 'nse')
 pattern = r'.*{}.*'
 
+module_type_to_key = {
+    'IM151': 'ET200'
+}
+
+
+def convert(module_type, type_to_key):
+    for key in module_type_to_key.keys():
+        if key in module_type:
+            return module_type_to_key[key]
+    return module_type
+
 
 def s7_resolve(elements):
     info = dict()
@@ -19,12 +30,8 @@ def s7_resolve(elements):
     info['序列号'] = elements.get('Serial Number', '')
     info['模块型号'] = elements.get('Module', '')
     info['profile'] = elements.get('System Name', '')
-    info['key'] = {
-        'System Name': elements.get('System Name', ''),
-        'Copyright': elements.get('Copyright', ''),
-        'Version': elements.get('Version', '')
-    }
 
+    info['key'] = [elements.get('Module Type', '')]
     return info
 
 
@@ -32,17 +39,10 @@ def s7_scan(keys):
     mongo = MongoClient()
     db = mongo.ids
     vul = db.vulnerability
-    num_reg = r'(\d+[./-]*\d*)'
     result = []
-    if 'System Name' not in keys or len(keys['System Name']) == 0:
-        return []
-    product_num = re.findall(num_reg, keys['System Name'])  # find s7 300
-    if len(product_num) == 0:
-        product_num = ""
-    else:
-        product_num = product_num[0]
-    result.extend(vul.find({'product': re.compile(pattern.format(product_num), re.IGNORECASE),
-                            'link': re.compile(pattern.format('siemens'), re.IGNORECASE)}))
+    keys = [convert(key, module_type_to_key) for key in keys]
+    keys = ' '.join(keys)
+    result.extend(vul.find({'$text': {'$search': keys}}))
     return result
 
 

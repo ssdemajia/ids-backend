@@ -1,7 +1,8 @@
 from pymongo import MongoClient
 from multiprocessing import Pool
-from core.vul_scan import get_system_info
-from core.utils import get_loc
+from core.vul_scan import get_system_info, vul_scan
+from core.utils import get_loc, calculate_safety
+from datetime import datetime
 
 import os
 import time
@@ -60,5 +61,61 @@ def scan_ips():
     pool.map(scan_ip, ips)
 
 
+def scan_all_system():
+    mongo = MongoClient()
+    shodan = mongo.shodan
+    collection = shodan.all
+    from pprint import pprint
+    result = list(collection.find())
+    for info in result:
+        data = info['data']
+        print(info['type'])
+        if info['type'] == 'omron':
+            key = [data.get('Controller Model', '')]
+            port = 9600
+        elif info['type'] == 's7':
+            key = [data.get('Module type', ''),
+                   data.get('Version', '')]
+            port = 102
+        elif info['type'] == 'bacnet':
+            key = [data.get('Model Name', '')]
+            port = 47808
+        elif info['type'] == 'modbus':
+            key = [data.get('CPU module', '')]
+            port = 502
+        elif info['type'] == 'ethip':
+            key = [data.get('Product name'), '']
+            port = 44818
+        vuls = vul_scan(key, port)
+        info['vuls'] = vuls
+        collection.update_one({'_id': info['_id']}, {'$set': {'vuls': vuls}})
+        # pprint(len())
+        # pprint(info)
+
+
+def scan_all_system_distribute():
+    mongo = MongoClient()
+    shodan = mongo.shodan
+    all = shodan.all
+    distribute = shodan.distribute
+    system_types = ['', 's7', 'ethip', 'modbus', 'bacnet', 'omron']
+    for system_type in system_types:
+        distribute.update({'type': system_type}, {'type': system_type}, upsert=True)
+        result = {
+            '高危': 0,
+            '中危': 0,
+            '低危': 0,
+            '健康': 0
+        }
+        if system_type == '':
+            vuls = all.find({}, {'vuls': 1})
+        else:
+            vuls = all.find({'type': system_type}, {'vuls': 1})
+        for vul in vuls:
+            result[calculate_safety(vul['vuls'])] += 1
+
+        shodan.distribute.update({'type': system_type}, {'$push': {'date': datetime.now(), 'result': result}})
+
+
 if __name__ == '__main__':
-    scan_ips()
+    scan_all_system_distribute()

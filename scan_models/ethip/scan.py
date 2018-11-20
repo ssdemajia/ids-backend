@@ -7,6 +7,17 @@ port = 44818
 ip = "166.250.228.16"  # for test
 pattern = r'.*{}.*'
 
+module_type_to_key = {
+    '1766': 'MicroLogix 1400'
+}
+
+
+def convert(module_type, type_to_key):
+    for key in module_type_to_key.keys():
+        if key in module_type:
+            return module_type_to_key[key]
+    return module_type
+
 
 def ethip_resolve(protocol_element):
     info = dict()
@@ -34,9 +45,9 @@ def ethip_scan(keys):
     db = mongo.ids
     vul = db.vulnerability
     result = []
-    # result.extend(vul.find({'product': re.compile(pattern.format(keys['Vendor']), re.IGNORECASE)}))
-    if 'Model' in keys:
-        result.extend(vul.find({'description': re.compile(pattern.format(keys['Model']), re.IGNORECASE)}))
+    keys = [convert(key, module_type_to_key) for key in keys]
+    keys = ' '.join(keys)
+    result.extend(vul.find({'$text': {'$search': keys}}))
     return result
 
 

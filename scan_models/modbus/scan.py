@@ -9,6 +9,18 @@ nse_path = os.path.join(os.getcwd(), '..', 'nse')
 pattern = r'.*{}.*'
 
 
+module_type_to_key = {
+    'BMX': 'BMX P34'
+}
+
+
+def convert(module_type, type_to_key):
+    for key in type_to_key.keys():
+        if key in module_type:
+            return type_to_key[key]
+    return module_type
+
+
 def modbus_resolve(protocol_element):
     info = dict()
 
@@ -45,13 +57,10 @@ def modbus_scan(keys):
     mongo = MongoClient()
     db = mongo.ids
     vul = db.vulnerability
-    num_reg = r'(\d+[./-]*\d*)'
     result = []
-    if 'Category' not in keys or len(keys['Category']) == 0:
-        return []
-
-    result.extend(vul.find({'product': re.compile(pattern.format(keys['Category']), re.IGNORECASE),
-                            'link': re.compile(pattern.format('schneider'), re.IGNORECASE)}))
+    keys = [convert(key, module_type_to_key) for key in keys]
+    keys = ' '.join(keys)
+    result.extend(vul.find({'$text': {'$search': keys}}))
     return result
 
 

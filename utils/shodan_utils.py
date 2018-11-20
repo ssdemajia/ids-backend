@@ -20,8 +20,10 @@ def search_shodan(key, collection, parse_func):
         result['data'] = data
         result['location'] = match['location']
         result['ip'] = match['ip_str']
+        result['type'] = collection
         print(result)
         db[collection].insert(result)
+        db['all'].insert(result)
 
 
 def parse_s7(info):
@@ -96,37 +98,38 @@ def parse_omron(info):
 
 def get_shodan():
     info = [
-        # {
-        #     'key': 'Module name: CPU',
-        #     'collection': 's7',
-        #     'parse func': parse_s7
-        # },
-        # {
-        #     'key': 'Schneider Electric BMX',
-        #     'collection': 'modbus',
-        #     'parse func': parse_modbus
-        # },
-        # {
-        #     'key': 'Vendor Name: Tridium',
-        #     'collection': 'bacnet',
-        #     'parse func': parse_bacnet,
-        # },
-        # {
-        #     'key': 'Vendor ID: Rockwell',
-        #     'collection': 'ethip',
-        #     'parse func': parse_ethip,
-        # },
-        # {
-        #     'key': 'Vendor ID: Rockwell',
-        #     'collection': 'ethip',
-        #     'parse func': parse_ethip,
-        # },
+        {
+            'key': 'Module name: CPU',
+            'collection': 's7',
+            'parse func': parse_s7
+        },
+        {
+            'key': 'Schneider Electric BMX',
+            'collection': 'modbus',
+            'parse func': parse_modbus
+        },
+        {
+            'key': 'Vendor Name: Tridium',
+            'collection': 'bacnet',
+            'parse func': parse_bacnet,
+        },
+        {
+            'key': 'Vendor ID: Rockwell',
+            'collection': 'ethip',
+            'parse func': parse_ethip,
+        },
+        {
+            'key': 'Vendor ID: Rockwell',
+            'collection': 'ethip',
+            'parse func': parse_ethip,
+        },
         {
             'key': 'IOM Size:',
             'collection': 'omron',
             'parse func': parse_omron,
         },
     ]
+    db.drop_collection('all')
     for i in info:
         search_shodan(i['key'], i['collection'], i['parse func'])
     print('update success')
@@ -140,7 +143,7 @@ def get_legel_ips():
 
 
 if __name__ == '__main__':
-    get_legel_ips()
+    get_shodan()
 
 
 # 82.77.52.152, 78.36.201.246, 5.198.231.44

@@ -5,6 +5,8 @@ from bson import ObjectId
 from pymongo import MongoClient
 from flask.json import JSONEncoder
 
+import json
+import datetime
 
 class MonitorJsonEncoder(JSONEncoder):
     def default(self, o):
@@ -12,6 +14,8 @@ class MonitorJsonEncoder(JSONEncoder):
             return
         elif isinstance(o, bytes):
             return o.decode('utf-8')
+        elif isinstance(o, datetime.datetime):
+            return o.__str__()
         return json.JSONEncoder.default(self, o)
 
 

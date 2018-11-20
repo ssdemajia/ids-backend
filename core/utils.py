@@ -63,6 +63,17 @@ def update_loc():
         })
 
 
+def calculate_safety(vuls):
+    for vul in vuls:
+        if vul['level'][0] == '高':
+            return '高危'
+        elif vul['level'][0] == '中':
+            return '中危'
+        elif vul['level'][0] == '低':
+            return '低危'
+    return '健康'
+
+
 if __name__ == '__main__':
     print(get_loc("77.44.82.196"))
     # update_loc()

@@ -8,6 +8,18 @@ ip = "193.252.187.123"  # for test
 pattern = r'.*{}.*'
 
 # http://www.ia.omron.com/products/category/automation-systems/programmable-controllers/cp1/index.html
+module_type_to_key = {
+    'CP1': 'CP1',
+    'CJ1': 'CJ1',
+
+}
+
+
+def convert(module_type, type_to_key):
+    for key in module_type_to_key.keys():
+        if key in module_type:
+            return module_type_to_key[key]
+    return module_type
 
 
 def omron_resolve(protocol_element):
@@ -19,11 +31,7 @@ def omron_resolve(protocol_element):
     info['程序块大小'] = protocol_element.get('Program Area Size', '')
     info['步进转换数'] = protocol_element.get('No.of steps/trainsitions', '')
     info['profile'] = protocol_element.get('Controller Model', '') + protocol_element.get('Controller Version', '')
-    info['key'] = {
-        'Vendor': 'omron',
-        'Model': 'cpu',
-        'Version': protocol_element.get('Controller Version', '')
-    }
+    info['key'] = [protocol_element.get('Controller Model', '')]
     return info
 
 
@@ -32,9 +40,9 @@ def omron_scan(keys):
     db = mongo.ids
     vul = db.vulnerability
     result = []
-    result.extend(vul.find({'product': re.compile(pattern.format(keys['Vendor']), re.IGNORECASE),
-                            '$and': [{'description': re.compile(pattern.format(keys['Model']), re.IGNORECASE)}]
-                            }))  # find omron supervisor
+    keys = [convert(key, module_type_to_key) for key in keys]
+    keys = ' '.join(keys)
+    result.extend(vul.find({'$text': {'$search': keys}}))
     return result
 
 
