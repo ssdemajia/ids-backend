@@ -6,8 +6,15 @@ from scan_models.modbus import modbus_scan, modbus_resolve
 from scan_models.bacnet import bacnet_scan, bacnet_resolve
 from scan_models.omron import omron_scan, omron_resolve
 from scan_models.ethip import ethip_scan, ethip_resolve
-from scan_models.poconos import proconos_scan, proconos_resolve
+from scan_models.proconos import proconos_scan, proconos_resolve
 from scan_models.pcworx import pcworx_scan, pcworx_resolve
+from scan_models.codesys import codesys_resolve, codesys_scan
+from scan_models.melsec import melsec_resolve, melsec_scan
+from scan_models.niagara import niagara_scan, niagara_resolve
+from scan_models.redlion import redlion_resolve, redlion_scan
+from scan_models.iec104 import iec104_scan, iec104_resolve
+from scan_models.hart import hart_resolve, hart_scan
+from scan_models.dnp3 import dnp3_resolve, dnp3_scan
 
 import os
 import itertools
@@ -23,6 +30,7 @@ import requests
 # proconos 20547
 # wincc udp 137
 # scalance udp 161
+# hart 5094
 tcp_ports = [44818, 102, 502, 1962, 20547, 5007]
 udp_ports = [161, 137, 9600, 47808, 5008]
 company = ['siemens', 'schneider', 'mitsubishi', 'rockwell', 'pcworx', 'proconos']
@@ -164,11 +172,8 @@ def parse_protocol_info(port, protocol_element):
         info = proconos_resolve(protocol_element)
     elif port == 1962:
         info = pcworx_resolve(protocol_element)
-    # elif port == 5007 or port == 5008:
-    #     info['CPU型号'] = protocol_element.get('CPUINFO', '')
-    #     info['PLC类型'] = 'Mitsubishi MelSoft'
-    #     info['profile'] = 'Mitsubishi MelSoft'
-    #     info['key'] = ['Mitsubishi MelSoft']
+    elif port == 5007 or port == 5008:
+        info = melsec_scan(protocol_element)
     if len(info) != 0:
         system_info['info'] = info
         system_info['port'] = port
@@ -196,9 +201,20 @@ def vul_scan(keys, port):
         info = proconos_scan(keys)
     elif port == 1962:   # pcworx
         info = pcworx_scan(keys)
-    elif port == 5007 or port == 5008:  # todo
-        pass
-
+    elif port == 5007:
+        info = melsec_scan(keys)
+    elif port == 789:
+        info = redlion_scan(keys)
+    elif port == 2455:
+        info = codesys_scan(keys)
+    elif port == 2404:
+        info = iec104_scan(keys)
+    elif port == 5094:
+        info = hart_scan(keys)
+    elif port == 1911:
+        info = niagara_scan(keys)
+    elif port == 20000:
+        info = dnp3_scan(keys)
     return info
 
 

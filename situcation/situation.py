@@ -6,7 +6,6 @@ from core.utils import calculate_safety
 
 import re
 import json
-import datetime
 import itertools
 
 situation = Blueprint('situation', __name__)
@@ -18,7 +17,7 @@ def get_device_info():
     data = request.get_json()
     device_type = data['type']
 
-    infos = mongo.shodan[device_type].find()
+    infos = mongo.shodan[device_type].find().limit(200)
     result = {
         'code': 20000,
         'result': list(infos),
@@ -121,8 +120,6 @@ def get_system_vuls():
     return result
 
 
-
-
 @situation.route('/system_score')
 def get_system_score():
     systems = mongo.shodan.all.find({}, {'vuls': 1})
@@ -156,7 +153,8 @@ def get_system_vuls_count():
         '健康': 0
     }
     for system in systems:
-        result[calculate_safety(system['vuls'])] += 1
+        if 'vuls' in system:
+            result[calculate_safety(system['vuls'])] += 1
     result = json.dumps({
         'code': 20000,
         'result': result
@@ -175,3 +173,16 @@ def get_system_vuls_distribute():
     }, cls=MonitorJsonEncoder)
     return result
 
+
+@situation.route('/system_count')
+def get_system_count():
+    system_types = ['s7', 'ethip', 'modbus', 'bacnet', 'omron', 'melsec', 'redlion', 'proconos''proworx', 'iec104',
+                    'hart', 'niagara', 'dnp3', 'codesys']
+    result = {}
+    for system_type in system_types:
+        result[system_type] = mongo.shodan[system_type].find().count()
+    result = json.dumps({
+        'code': 20000,
+        'result': result
+    }, cls=MonitorJsonEncoder)
+    return result

@@ -86,11 +86,38 @@ def scan_all_system():
         elif info['type'] == 'ethip':
             key = [data.get('Product name'), '']
             port = 44818
+        elif info['type'] == 'melsec':
+            key = ['melsec', '']
+            port = 5007
+        elif info['type'] == 'redlion':
+            key = ['redlion', '']
+            port = 789
+        elif info['type'] == 'proworx':
+            key = ['proworx', '']
+            port = 1962
+        elif info['type'] == 'proconos':
+            key = ['proconos', '']
+            port = 20547
+        elif info['type'] == 'iec104':
+            key = ['iec104', '']
+            port = 2404
+        elif info['type'] == 'hart':
+            key = ['hart', '']
+            port = 5094
+        elif info['type'] == 'niagara':
+            key = ['niagara', '']
+            port = 1911
+        elif info['type'] == 'dnp3':
+            key = ['dnp3', '']
+            port = 20000
+        elif info['type'] == 'codesys':
+            key = ['codesys', '']
+            port = 2455
         vuls = vul_scan(key, port)
         info['vuls'] = vuls
         collection.update_one({'_id': info['_id']}, {'$set': {'vuls': vuls}})
-        # pprint(len())
-        # pprint(info)
+        pprint(len(vuls))
+        pprint(info)
 
 
 def scan_all_system_distribute():
@@ -98,7 +125,7 @@ def scan_all_system_distribute():
     shodan = mongo.shodan
     all = shodan.all
     distribute = shodan.distribute
-    system_types = ['', 's7', 'ethip', 'modbus', 'bacnet', 'omron']
+    system_types = ['', 's7', 'ethip', 'modbus', 'bacnet', 'omron', 'melsec', 'redlion', 'proconos''proworx', 'iec104', 'hart', 'niagara', 'dnp3', 'codesys']
     for system_type in system_types:
         distribute.update({'type': system_type}, {'type': system_type}, upsert=True)
         result = {
@@ -119,3 +146,4 @@ def scan_all_system_distribute():
 
 if __name__ == '__main__':
     scan_all_system_distribute()
+    # scan_all_system()

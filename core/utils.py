@@ -74,6 +74,13 @@ def calculate_safety(vuls):
     return '健康'
 
 
+def convert(module_type_to_key, module_type):
+    for key in module_type_to_key.keys():
+        if key in module_type:
+            return module_type_to_key[key]
+    return module_type
+
+
 if __name__ == '__main__':
     print(get_loc("77.44.82.196"))
     # update_loc()
