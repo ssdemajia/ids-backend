@@ -1,5 +1,5 @@
-from libnmap.process import NmapProcess
-from libnmap.parser import NmapParser, NmapParserException
+# from libnmap.process import NmapProcess
+# from libnmap.parser import NmapParser, NmapParserException
 
 from scan_models.s7 import s7_scan, s7_resolve
 from scan_models.modbus import modbus_scan, modbus_resolve
@@ -49,33 +49,33 @@ def check_clearscada(ip_address):
     return ""
 
 
-def test_service(ip_address):
-    tcp_options = [("-sT -p " + str(_port), _port) for _port in tcp_ports]
-    udp_options = [("-sU -p " + str(_port), _port) for _port in udp_ports]
-    useful_port = []
-    for option, port in itertools.chain(tcp_options, udp_options):
-        print(port)
-        if test_port(ip_address, option):
-            useful_port.append(port)
-    print(useful_port)
-    return useful_port
-
-
-def test_port(ip_address, option):
-    nm = NmapProcess(ip_address, options=option)
-    nm.run()
-    if nm.rc != 0:
-        return False
-    parsed = NmapParser.parse(nm.stdout)
-    if len(parsed.hosts) == 0:
-        return False
-    host = parsed.hosts[0]
-    if len(host.services) == 0:
-        return False
-    service = host.services[0]
-    if "open" in service.state:
-        return True
-    return False
+# def test_service(ip_address):
+#     tcp_options = [("-sT -p " + str(_port), _port) for _port in tcp_ports]
+#     udp_options = [("-sU -p " + str(_port), _port) for _port in udp_ports]
+#     useful_port = []
+#     for option, port in itertools.chain(tcp_options, udp_options):
+#         print(port)
+#         if test_port(ip_address, option):
+#             useful_port.append(port)
+#     print(useful_port)
+#     return useful_port
+#
+#
+# def test_port(ip_address, option):
+#     nm = NmapProcess(ip_address, options=option)
+#     nm.run()
+#     if nm.rc != 0:
+#         return False
+#     parsed = NmapParser.parse(nm.stdout)
+#     if len(parsed.hosts) == 0:
+#         return False
+#     host = parsed.hosts[0]
+#     if len(host.services) == 0:
+#         return False
+#     service = host.services[0]
+#     if "open" in service.state:
+#         return True
+#     return False
 
 
 def choice_protocol(ip_address, ports, nse_path):
@@ -125,34 +125,34 @@ def choice_protocol(ip_address, ports, nse_path):
     return None
 
 
-def get_info(ip_address, option, port):
-    nm = NmapProcess(ip_address, options=option)
-    nm.run()
-
-    if nm.rc != 0:
-        print(nm.stderr)
-    try:
-        parsed = NmapParser.parse(nm.stdout)
-    except NmapParserException:
-        return
-    print(parsed)
-    if len(parsed.hosts) == 0:
-        return
-    host = parsed.hosts[0]
-    if len(host.services) == 0:
-        return
-    service = host.services[0]
-    if len(service._service_extras) == 0:
-        return
-    script_output = service._service_extras['scripts']
-    if len(script_output) == 0:
-        return
-    protocol_element = script_output[0]['elements']
-    if protocol_element is None:
-        return
-    info = parse_protocol_info(port, protocol_element)
-
-    return info
+# def get_info(ip_address, option, port):
+#     nm = NmapProcess(ip_address, options=option)
+#     nm.run()
+#
+#     if nm.rc != 0:
+#         print(nm.stderr)
+#     try:
+#         parsed = NmapParser.parse(nm.stdout)
+#     except NmapParserException:
+#         return
+#     print(parsed)
+#     if len(parsed.hosts) == 0:
+#         return
+#     host = parsed.hosts[0]
+#     if len(host.services) == 0:
+#         return
+#     service = host.services[0]
+#     if len(service._service_extras) == 0:
+#         return
+#     script_output = service._service_extras['scripts']
+#     if len(script_output) == 0:
+#         return
+#     protocol_element = script_output[0]['elements']
+#     if protocol_element is None:
+#         return
+#     info = parse_protocol_info(port, protocol_element)
+#
+#     return info
 
 
 def parse_protocol_info(port, protocol_element):
@@ -179,11 +179,11 @@ def parse_protocol_info(port, protocol_element):
         system_info['port'] = port
     return system_info
 
-
-def get_system_info(ip, nse_path):
-    ports = test_service(ip)
-    ifs = choice_protocol(ip, ports, nse_path)
-    return ifs
+#
+# def get_system_info(ip, nse_path):
+#     ports = test_service(ip)
+#     ifs = choice_protocol(ip, ports, nse_path)
+#     return ifs
 
 
 def vul_scan(keys, port):
@@ -231,7 +231,7 @@ if __name__ == '__main__':
     # ip = '166.149.137.48'  # mitsubishi MELSOFT UDP/5008 TCP/5007
 
     nse_path = os.path.join(os.getcwd(), '..', 'nse')
-    result = get_system_info(ip, nse_path)
+    # result = get_system_info(ip, nse_path)
 
     # import json
     # import sys

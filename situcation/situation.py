@@ -1,15 +1,45 @@
 from flask import Blueprint, request, jsonify
 from pymongo import MongoClient
-from core.monitor import MonitorJsonEncoder
-from core.utils import calculate_safety
-
-
+from flask.json import JSONEncoder
+from bson import ObjectId
+from core import config
 import re
 import json
 import itertools
+import datetime
 
 situation = Blueprint('situation', __name__)
-mongo = MongoClient()
+mongo = MongoClient(host=config['mongo'])
+
+
+def calculate_safety(vuls):
+    """
+    通过漏洞等级返回对应正式名称
+    :param vuls:
+    :return:
+    """
+    for vul in vuls:
+        if vul['level'][0] == '高':
+            return '高危'
+        elif vul['level'][0] == '中':
+            return '中危'
+        elif vul['level'][0] == '低':
+            return '低危'
+    return '健康'
+
+
+class MongoJsonEncoder(JSONEncoder):
+    """
+    用于将mongo数据转换为json，因为mongo的bson有一个ObjectId字段
+    """
+    def default(self, o):
+        if isinstance(o, ObjectId):
+            return
+        elif isinstance(o, bytes):
+            return o.decode('utf-8')
+        elif isinstance(o, datetime.datetime):
+            return o.__str__()
+        return json.JSONEncoder.default(self, o)
 
 
 @situation.route('/device', methods=["POST"])
@@ -23,7 +53,7 @@ def get_device_info():
         'result': list(infos),
         'name': device_type
     }
-    response = json.dumps(result, cls=MonitorJsonEncoder)
+    response = json.dumps(result, cls=MongoJsonEncoder)
     return response
 
 
@@ -92,7 +122,7 @@ def get_vuls_by_key():
     result = json.dumps({
         'code': 20000,
         'result': list(vuls)
-    }, cls=MonitorJsonEncoder)
+    }, cls=MongoJsonEncoder)
     return result
 
 
@@ -104,7 +134,7 @@ def get_system_info():
     result = json.dumps({
         'code': 20000,
         'result': info
-    }, cls=MonitorJsonEncoder)
+    }, cls=MongoJsonEncoder)
     return result
 
 
@@ -116,7 +146,7 @@ def get_system_vuls():
     result = json.dumps({
         'code': 20000,
         'result': info
-    }, cls=MonitorJsonEncoder)
+    }, cls=MongoJsonEncoder)
     return result
 
 
@@ -134,7 +164,7 @@ def get_system_score():
     result = json.dumps({
         'code': 20000,
         'result': result
-    }, cls=MonitorJsonEncoder)
+    }, cls=MongoJsonEncoder)
     return result
 
 
@@ -158,7 +188,7 @@ def get_system_vuls_count():
     result = json.dumps({
         'code': 20000,
         'result': result
-    }, cls=MonitorJsonEncoder)
+    }, cls=MongoJsonEncoder)
     return result
 
 
@@ -170,7 +200,7 @@ def get_system_vuls_distribute():
     result = json.dumps({
         'code': 20000,
         'result': systems
-    }, cls=MonitorJsonEncoder)
+    }, cls=MongoJsonEncoder)
     return result
 
 
@@ -184,5 +214,5 @@ def get_system_count():
     result = json.dumps({
         'code': 20000,
         'result': result
-    }, cls=MonitorJsonEncoder)
+    }, cls=MongoJsonEncoder)
     return result

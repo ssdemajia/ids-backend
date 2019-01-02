@@ -1,5 +1,8 @@
 import os
 
+"""
+统计代码量
+"""
 
 def calc_lines(dirpath, filename):
     f = open(os.path.join(dirpath, filename), 'r')

@@ -5,7 +5,6 @@ from core import sql
 import pymysql
 
 
-
 events = Blueprint('events', __name__)
 
 """
