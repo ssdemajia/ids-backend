@@ -1,3 +1,12 @@
+# 第一次使用
+在根目录下创建ics.ini填入下面配置信息
+```
+[DEFAULT]
+mongo = 192.168.1.107
+zmapd = 127.0.0.1:8000
+elasticsearch = 192.168.1.101:9200
+```
+
 mongodb默认的数据目录为/data/db
 
 open mongod
@@ -26,3 +35,4 @@ s7
 all
 distribute
 ```
+
