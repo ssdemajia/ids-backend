@@ -7,12 +7,13 @@ zmapd = 127.0.0.1:8000
 elasticsearch = 192.168.1.101:9200
 ```
 
-mongodb默认的数据目录为/data/db
-
-open mongod
-```bash
-sudo mongod --logpath=/var/log/mongodb/log --fork
+### 启动Mongodb
+在服务器192.168.1.107上
 ```
+systemctl start mongod
+```
+填入密码501501501
+
 mongodb databases
 ```
 ids
