@@ -100,7 +100,7 @@ PyYAML==3.12
 redis==2.10.5
 reportlab==3.3.0
 requests==2.13.0
-rsa==3.4.2
+rsa==4.7
 scipy==1.1.0
 seaborn==0.8.1
 simplegeneric==0.8.1
