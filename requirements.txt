@@ -39,7 +39,7 @@ html5lib==0.999
 httplib2==0.9.1
 idna==2.7
 idna-ssl==1.1.0
-impacket==0.9.17
+impacket==0.9.23
 ipython==6.4.0
 ipython-genutils==0.2.0
 isort==4.3.4
