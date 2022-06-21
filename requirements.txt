@@ -58,7 +58,7 @@ matplotlib==2.2.2
 mccabe==0.6.1
 more-itertools==4.2.0
 multidict==4.3.1
-numpy==1.14.4
+numpy==1.22.0
 oauthlib==1.0.3
 padme==1.1.1
 pandas==0.23.1
